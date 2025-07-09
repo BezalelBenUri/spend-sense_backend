@@ -1,8 +1,13 @@
 from django.shortcuts import render
 
 from rest_framework import generics, permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+
 from .models import Wallet, DisbursementPlan, Transaction
-from .serializers import WalletSerializer, DisbursementPlanSerializer, TransactionSerializer
+from .serializers import WalletSerializer, DisbursementPlanSerializer, TransactionSerializer, WalletFundSerializer
 
 # Create your views here.
 class WalletDetailView(generics.RetrieveAPIView):
@@ -103,3 +108,13 @@ class TransactionListView(generics.ListAPIView):
                       `self.request.user`.
         """
         return Transaction.objects.filter(user = self.request.user).order_by('-timestamp')
+    
+class FundWalletView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = WalletFundSerializer(data = request.data, context = {'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Wallet funded successfully."}, status = status.HTTP_200_OK)
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)

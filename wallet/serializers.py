@@ -135,3 +135,32 @@ class TransactionSerializer(serializers.ModelSerializer):
             'reference',
             'status'
         ]
+
+class WalletFundSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits = 12, decimal_places = 2)
+    reference = serializers.CharField(max_length = 64)
+
+    def validate_reference(self, value):
+        if Transaction.objects.filter(reference = value).exists():
+            raise serializers.ValidationError("This reference has already been used.")
+        return value
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        amount = validated_data['amount']
+        reference = validated_data['reference']
+
+        # Update wallet
+        wallet, created = Wallet.objects.get_or_create(user = user)
+        wallet.balance += amount
+        wallet.save()
+
+        # Create transaction
+        Transaction.objects.create(
+            user = user,
+            tx_type = 'fund',
+            amount = amount,
+            reference = reference,
+            status = 'success'
+        )
+        return {"message": "Wallet funded successfully."}
