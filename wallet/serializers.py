@@ -137,15 +137,65 @@ class TransactionSerializer(serializers.ModelSerializer):
         ]
 
 class WalletFundSerializer(serializers.Serializer):
+    """
+    Serializer for handling the funding of a user's wallet.
+
+    This serializer defines the expected input fields for a wallet funding operation
+    (amount and a unique reference). It performs custom validation to ensure the
+    reference is not duplicated and encapsulates the business logic for updating
+    the wallet balance and creating a transaction record.
+
+    Attributes:
+        amount (DecimalField): The amount of money to fund the wallet.
+                               Requires up to 12 digits total with 2 decimal places.
+        reference (CharField): A unique string identifier for the funding transaction.
+                               Maximum length of 64 characters.
+
+    Methods:
+        validate_reference(value): Custom validation to ensure the provided
+                                   reference has not been used before.
+        create(validated_data): Performs the actual wallet funding and transaction
+                                creation logic after data validation.
+    """
     amount = serializers.DecimalField(max_digits = 12, decimal_places = 2)
     reference = serializers.CharField(max_length = 64)
 
     def validate_reference(self, value):
+        """
+        Custom validation method for the 'reference' field.
+
+        Checks if a transaction with the given reference already exists in the database.
+        If a duplicate is found, a validation error is raised.
+
+        Args:
+            value (str): The reference string provided in the request.
+
+        Raises:
+            serializers.ValidationError: If the reference has already been used.
+
+        Returns:
+            str: The validated reference value if it is unique.
+        """
         if Transaction.objects.filter(reference = value).exists():
             raise serializers.ValidationError("This reference has already been used.")
         return value
 
     def create(self, validated_data):
+        """
+        Performs the wallet funding operation and creates a new transaction record.
+
+        This method is called after the serializer's data has been validated.
+        It retrieves the authenticated user, updates their wallet balance,
+        and creates a new 'fund' type transaction.
+
+        Args:
+            validated_data (dict): A dictionary containing the validated data
+                                   (amount and reference) from the serializer.
+
+        Returns:
+            dict: A dictionary indicating the success of the operation.
+                  (Note: The view typically handles the final HTTP Response).
+        """
         user = self.context['request'].user
         amount = validated_data['amount']
         reference = validated_data['reference']

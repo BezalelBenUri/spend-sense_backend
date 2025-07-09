@@ -110,9 +110,40 @@ class TransactionListView(generics.ListAPIView):
         return Transaction.objects.filter(user = self.request.user).order_by('-timestamp')
     
 class FundWalletView(APIView):
+    """
+    API view to handle funding of the authenticated user's wallet.
+
+    This view allows an authenticated user to deposit funds into their digital wallet
+    via an HTTP POST request. It utilizes a `WalletFundSerializer` to validate
+    the incoming data (e.g., the amount to fund) and then processes the transaction.
+
+    Permissions:
+        - `IsAuthenticated`: Only authenticated (logged-in) users can access this endpoint.
+
+    Methods:
+        post(request):
+            Handles the POST request to fund the wallet.
+            - Takes the request data, which should include the amount to fund.
+            - Validates the data using `WalletFundSerializer`.
+            - If valid, calls the serializer's `save()` method to perform the funding logic.
+            - Returns a success message with HTTP 200 OK status if funding is successful.
+            - Returns validation errors with HTTP 400 Bad Request status if data is invalid.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """
+        Handles the POST request to fund the user's wallet.
+
+        Args:
+            request (HttpRequest): The incoming HTTP request object, containing
+                                   request data and user information.
+
+        Returns:
+            Response:
+                - HTTP 200 OK with a success message if the wallet is funded.
+                - HTTP 400 Bad Request with serializer errors if the input data is invalid.
+        """
         serializer = WalletFundSerializer(data = request.data, context = {'request': request})
         if serializer.is_valid():
             serializer.save()
