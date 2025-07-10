@@ -11,9 +11,26 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def process_disbursements():
+    """
+    Celery shared task to process scheduled disbursement plans.
+
+    This task runs periodically to check for active disbursement plans that are due.
+    For each due plan, it performs the following actions:
+    1. Retrieves the associated user's wallet.
+    2. Checks if the wallet's locked balance is sufficient for the disbursement.
+    3. Transfers the `amount_per_disbursement` from `locked_balance` to `balance`.
+    4. Creates a new `Transaction` record for the disbursement.
+    5. Updates the `next_disbursement` date for the plan based on its type (daily/weekly).
+
+    The task logs its execution start time and provides informative messages.
+    It's designed to be idempotent for individual plan processing, meaning
+    running it multiple times for the same plan within a short window (before
+    `next_disbursement` is updated) will not cause duplicate disbursements
+    due to the `next_disbursement__lte` filter.
+    """
     now = timezone.now()
     logger.info(f"⏱ Running disbursement check at {now}")
-    
+
     plans = DisbursementPlan.objects.filter(active = True, next_disbursement__lte = now)
 
     for plan in plans:
