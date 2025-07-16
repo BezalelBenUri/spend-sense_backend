@@ -51,6 +51,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """
         Creates and returns a new `User` instance, given the validated data.
+        Also creates a Wallet for the user.
 
         This method ensures that the password is properly hashed using Django's
         built-in `create_user` method.
@@ -67,6 +68,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
             username = validated_data.get('username', ''),
             password = validated_data['password']
         )
+        # Wallet.objects.create(user = user)
         return user
 
 class WalletSerializer(serializers.ModelSerializer):
